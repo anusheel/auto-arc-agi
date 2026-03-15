@@ -103,6 +103,7 @@ def api(method, path, body=None):
     # Enforce reflection before game commands
     if "/cmd/" in path and _should_reflect():
         raise Exception("REFLECT: Write to memory/ before continuing. See program.md.")
+    if "/cmd/" in path:
         time.sleep(0.1)
     headers = {"X-API-Key": KEY, "Content-Type": "application/json"}
     for attempt in range(3):
