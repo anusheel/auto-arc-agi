@@ -74,25 +74,16 @@ def _http(method, url, body=None, headers=None, timeout=60):
 # ── Reflection enforcement ────────────────────────────────────────────
 
 REFLECT_EVERY = 10  # game actions between mandatory reflections (adjustable)
-MEMORY_DIR = Path(__file__).parent / "memory"
 _ACTION_LOG = Path(__file__).parent / ".action_count"
 
 
 def _should_reflect():
-    """True if enough actions have passed since the last memory/ write."""
+    """True if enough actions have passed since the last reflection."""
     try:
         count = int(_ACTION_LOG.read_text().strip()) if _ACTION_LOG.exists() else 0
     except Exception:
         return False
-    if count < REFLECT_EVERY:
-        return False
-    # Auto-reset if memory/ was written since last action
-    if _ACTION_LOG.exists() and MEMORY_DIR.exists():
-        cutoff = _ACTION_LOG.stat().st_mtime
-        if any(f.stat().st_mtime > cutoff for f in MEMORY_DIR.iterdir()):
-            _ACTION_LOG.write_text("0")
-            return False
-    return True
+    return count >= REFLECT_EVERY
 
 
 # ── Core API ─────────────────────────────────────────────────────────
@@ -102,6 +93,7 @@ def api(method, path, body=None):
     """Call ARC API with retry on rate limit."""
     # Enforce reflection before game commands
     if "/cmd/" in path and _should_reflect():
+        _ACTION_LOG.write_text("0")
         raise Exception("REFLECT: Write to memory/ before continuing. See program.md.")
     if "/cmd/" in path:
         time.sleep(0.1)
