@@ -2,7 +2,7 @@
 
 Figure out the rules of each game by playing. Once you know the rules, replay to complete all levels in minimum actions.
 
-program.md and play.py are generic across games. Game-specific knowledge belongs in memory.md.
+Fully autonomous — never ask for human input, never stop voluntarily. If a game expires, start a new one immediately. If stuck, change approach and keep going. The only acceptable stopping point is completing all levels. program.md and play.py are generic across games. Game-specific knowledge belongs in memory.md.
 
 ## How
 

@@ -213,23 +213,109 @@ def render(frame_data):
 # ── Game-specific helpers (add per-game helpers below) ─────────────────
 
 
+def speedrun_ls20(game_id, through_level=4):
+    """Speed-run ls20 levels 1-4 using proven paths. Returns (card_id, guid, obs) at the target level."""
+    card_id, obs = start(game_id)
+    guid = obs["guid"]
+    # L1 (14 moves)
+    obs = seq(game_id, guid, "LLLLUUUURRRUUU", card_id)
+    if through_level <= 1:
+        return card_id, guid, obs
+    # L2 (~41 moves)
+    g = frame_to_grid(obs); pos = find_objects(g, 12)[0]
+    m2 = {(46,51),(47,50),(47,51),(47,52),(48,51)}
+    p1, pos1 = bfs_path(g, pos, lambda r,c: all(r<=mr<r+5 and c<=mc<c+5 for mr,mc in m2))
+    for dr, dc, m in [(-5,0,"U"),(0,-5,"L"),(0,5,"R"),(5,0,"D")]:
+        esc = (pos1[0]+dr, pos1[1]+dc)
+        if not any(esc[0]<=mr<esc[0]+5 and esc[1]<=mc<esc[1]+5 for mr,mc in m2):
+            p2, _ = bfs_path(g, esc, lambda r,c: 39<=r<=44 and 13<=c<=19, avoid=m2)
+            if p2:
+                obs = seq(game_id, guid, p1 + "UDUD" + m + p2, card_id)
+                break
+    if through_level <= 2:
+        return card_id, guid, obs
+    # L3 (60 moves)
+    obs = act("D", game_id, guid, card_id)
+    obs = seq(game_id, guid, "UUUUUUUURRRRDDDDDDDD" + "UUUUUUUUR" + "LDDDDRRRRRUUUL" + "UDUD" + "U" + "RDDDDDDL" + "RDDD", card_id)
+    if through_level <= 3:
+        return card_id, guid, obs
+    # L4 (~46 moves)
+    obs = act("U", game_id, guid, card_id)
+    g = frame_to_grid(obs); pos = find_objects(g, 12)[0]
+    mk4 = {(31,25),(32,26),(32,27),(33,26)}
+    cl4 = {(31,35),(31,36),(31,37),(32,35),(32,36),(32,37),(33,35),(33,36),(33,37)}
+    pm, dm = bfs_path(g, pos, lambda r,c: all(r<=mr<r+5 and c<=mc<c+5 for mr,mc in mk4))
+    pc, dc = bfs_path(g, dm, lambda r,c: any(r<=sr<r+5 and c<=sc<c+5 for sr,sc in cl4))
+    pb, _ = bfs_path(g, dc, lambda r,c: 3<=r<=9 and 7<=c<=14, avoid=cl4)
+    obs = seq(game_id, guid, pm + pc + "UDUD" + pb + "L", card_id)
+    return card_id, guid, obs
+
+
+def get_movable(g):
+    """Find movable block position (excludes fixed block at cluster and BL box)."""
+    c12 = [(r,c) for r,c in find_objects(g, 12)
+           if not (55<=r<=60 and 3<=c<=8) and not (27<=r<=33 and 29<=c<=35)]
+    return c12[0] if c12 else None
+
+
+def bfs_path(grid, start, goal_fn, avoid=None):
+    """BFS pathfinder for 5x5 block on live grid.
+    start: (row, col) top-left of block.
+    goal_fn: callable(row, col) -> bool for target positions.
+    avoid: set of (row, col) cells the block must not cover.
+    Returns (move_string, final_pos) or (None, None)."""
+    from collections import deque
+    rows, cols = len(grid), len(grid[0])
+    avoid = avoid or set()
+    WALL = 4
+
+    def can_place(r, c):
+        for dr in range(5):
+            for dc in range(5):
+                rr, cc = r + dr, c + dc
+                if rr < 0 or rr >= rows or cc < 0 or cc >= cols:
+                    return False
+                if grid[rr][cc] == WALL:
+                    return False
+        if avoid:
+            for dr in range(5):
+                for dc in range(5):
+                    if (r + dr, c + dc) in avoid:
+                        return False
+        return True
+
+    q = deque([(start, "")])
+    visited = {start}
+    while q:
+        (r, c), path = q.popleft()
+        if goal_fn(r, c):
+            return path, (r, c)
+        for dr, dc, m in [(-5, 0, "U"), (5, 0, "D"), (0, -5, "L"), (0, 5, "R")]:
+            nr, nc = r + dr, c + dc
+            if (nr, nc) not in visited and can_place(nr, nc):
+                visited.add((nr, nc))
+                q.append(((nr, nc), path + m))
+    return None, None
+
+
 def box_pattern(g, box="bl"):
-    """Extract 9-pattern from a box as compact string. 9→'9', 5→'.'
+    """Extract pattern from a box as compact string. non-5→'X', 5→'.'
     box='bl' for bottom-left (rows 55-60, cols 3-8), 'top' for top (rows 10-14, cols 34-38)."""
     if box == "bl":
-        return ["".join("9" if g[y][c] == 9 else "." for c in range(3, 9)) for y in range(55, 61)]
+        return ["".join("X" if g[y][c] != 5 else "." for c in range(3, 9)) for y in range(55, 61)]
     elif box == "top":
-        return ["".join("9" if g[y][c] == 9 else "." for c in range(34, 39)) for y in range(10, 15)]
+        return ["".join("X" if g[y][c] != 5 else "." for c in range(34, 39)) for y in range(10, 15)]
 
 
 def box3x3(g, box="bl"):
-    """BL 6x6 pattern as 3x3 (2x2 blocks). Returns list of 3 strings."""
+    """BL 6x6 pattern as 3x3 (2x2 blocks). Returns list of 3 strings.
+    Treats any non-5 value as filled (handles both 9 and 12/c patterns)."""
     rows = [g[y][3:9] for y in range(55, 61)]
     result = []
     for br in range(3):
         row = []
         for bc in range(3):
-            row.append("9" if rows[br * 2][bc * 2] == 9 else ".")
+            row.append("X" if rows[br * 2][bc * 2] != 5 else ".")
         result.append("".join(row))
     return result
 

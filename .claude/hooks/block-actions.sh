@@ -4,11 +4,21 @@ INPUT=$(cat)
 COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // empty')
 
 TACTICAL_FILE="$(dirname "$0")/../arc_action_count"
+STRATEGIC_FILE="$(dirname "$0")/../arc_strategic_count"
 TACTICAL=$(cat "$TACTICAL_FILE" 2>/dev/null || echo 0)
+STRATEGIC=$(cat "$STRATEGIC_FILE" 2>/dev/null || echo 0)
 
 # Only check if command is a state-mutating game action
 if echo "$COMMAND" | grep -qE 'from play import' && \
    echo "$COMMAND" | grep -qE '\bact\(|\bseq\(|\bstart\(|\breset\(|\bnavigate\('; then
+
+  if [ "$STRATEGIC" -ge 25 ]; then
+    echo "STRATEGIC REFLECTION ($STRATEGIC actions). Step back and self-reflect:" >&2
+    echo "  - Is my methodology working? What process change would help most?" >&2
+    echo "  - What are my core assumptions? Which one is most likely wrong?" >&2
+    echo 0 > "$STRATEGIC_FILE"
+    exit 2
+  fi
 
   if [ "$TACTICAL" -ge 10 ]; then
     echo "BLOCKED: $TACTICAL actions since last tactical reflection." >&2
