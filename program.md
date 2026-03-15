@@ -2,6 +2,8 @@
 
 Figure out the rules of each game by playing. Once you know the rules, replay to complete all levels in minimum actions.
 
+program.md and play.py are generic across games. Game-specific knowledge belongs in memory.md.
+
 ## How
 
 Play by calling play.py functions from the shell. Think between each invocation.
@@ -32,32 +34,21 @@ STUCK PROTOCOL:
   - Same approach failing with different inputs? The CORE ASSUMPTION is wrong — stop testing variations.
 ```
 
-## Enforcement
+## Reflection (memory.md)
 
-Two independent counters, both increment on every game action:
+After compaction, memory.md is re-injected into context.
 
-- **Tactical (10 actions)**: Blocked until memory.md is updated. Resets on memory.md edit (only if under 200 lines).
-- **Strategic (25 actions)**: Blocked until program.md or play.py is updated. Resets on program.md or play.py edit.
+Use Edit (not Write) for memory.md — only update the section that changed.
+Append to Falsified and Reusable Tactics; don't rewrite them.
 
-Read-only calls are never blocked. After compaction, memory.md is re-injected into context.
-
-## Tactical Reflection (memory.md, every ~10 actions)
-
-Game-specific. Fill in ALL sections:
+Fill in ALL sections:
 - **Current Model** → what changed in your understanding of this game
 - **Falsified** → what was disproven (append; curate when nearing 200-line limit)
+- **Reusable Tactics** → game-specific patterns/strategies worth preserving (append-only)
 - **Next Test** → next hypothesis + expected outcome
 - **Game State** → current card_id, guid, level, resources
+- **Process Notes** → methodology/tooling observations; if something genuinely belongs in program.md or play.py, do it — high bar, only real improvements
 - **Last Reflection** → surprises + scores on Process/Understanding/Assumptions/Exploration/Stuck-detection/Tools
-
-## Strategic Reflection (program.md + play.py, every ~25 actions)
-
-Generic, not game-specific. Ask yourself:
-- Is my methodology working? What process change would help most?
-- Am I repeating a pattern that should be a play.py helper?
-- Is there a rule I keep breaking that should be in program.md?
-
-Changes should be minimal and broadly applicable. Don't add game-specific knowledge to program.md or play.py.
 
 ## Sub-Agents
 

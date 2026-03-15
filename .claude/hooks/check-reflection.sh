@@ -16,12 +16,9 @@ STRATEGIC=$(cat "$STRATEGIC_FILE" 2>/dev/null || echo 0)
 if [ "$TACTICAL" -ge 10 ]; then
   echo "MANDATORY REFLECTION ($TACTICAL actions since last update)." >&2
   echo "Update memory.md sections: Current Model, Falsified, Next Test, Game State, Last Reflection." >&2
-  exit 2
-fi
-
-if [ "$STRATEGIC" -ge 25 ]; then
-  echo "MANDATORY STRATEGIC REFLECTION ($STRATEGIC actions since last update)." >&2
-  echo "Review and update program.md or play.py with methodology improvements." >&2
+  if [ "$STRATEGIC" -ge 25 ]; then
+    echo "NUDGE: $STRATEGIC actions since last program.md/play.py update. Consider if any methodology or helper improvements are warranted (high bar — only genuine improvements)." >&2
+  fi
   exit 2
 fi
 

@@ -213,6 +213,41 @@ def render(frame_data):
 # ── Game-specific helpers (add per-game helpers below) ─────────────────
 
 
+def box_pattern(g, box="bl"):
+    """Extract 9-pattern from a box as compact string. 9→'9', 5→'.'
+    box='bl' for bottom-left (rows 55-60, cols 3-8), 'top' for top (rows 10-14, cols 34-38)."""
+    if box == "bl":
+        return ["".join("9" if g[y][c] == 9 else "." for c in range(3, 9)) for y in range(55, 61)]
+    elif box == "top":
+        return ["".join("9" if g[y][c] == 9 else "." for c in range(34, 39)) for y in range(10, 15)]
+
+
+def box3x3(g, box="bl"):
+    """BL 6x6 pattern as 3x3 (2x2 blocks). Returns list of 3 strings."""
+    rows = [g[y][3:9] for y in range(55, 61)]
+    result = []
+    for br in range(3):
+        row = []
+        for bc in range(3):
+            row.append("9" if rows[br * 2][bc * 2] == 9 else ".")
+        result.append("".join(row))
+    return result
+
+
+def snap(obs, label=""):
+    """Quick snapshot: block pos, BL 3x3, state, b-count."""
+    g = frame_to_grid(obs)
+    c12 = find_objects(g, 12)
+    pos = c12[0] if c12 else None
+    bl = box3x3(g)
+    b = sum(1 for r in g for v in r if v == 11)
+    markers = find_objects(g, 1)
+    state = obs.get("state", "?")
+    lvl = obs.get("levels_completed", 0)
+    print(f"{label} pos={pos} bl={'|'.join(bl)} b={b} st={state} lv={lvl} m={markers}")
+    return g
+
+
 # ── Status reporting ──────────────────────────────────────────────────
 
 class _Status:

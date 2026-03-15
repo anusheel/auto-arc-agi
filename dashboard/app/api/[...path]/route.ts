@@ -4,6 +4,7 @@ import { readFile } from "fs/promises";
 import path from "path";
 import { readDB, writeDB, appendFrame, readFrames, lookupPlayer } from "@/lib/db";
 import { getInstructions } from "@/lib/instructions";
+import { getSetupScript } from "@/lib/setup-script";
 
 export const dynamic = "force-dynamic";
 
@@ -54,6 +55,15 @@ export async function GET(req: Request, ctx: Ctx) {
     const h = await headers();
     const baseUrl = `${h.get("x-forwarded-proto") || "http"}://${h.get("host") || "localhost:3000"}`;
     return new NextResponse(getInstructions(baseUrl), { headers: { "Content-Type": "text/plain" } });
+  }
+
+  if (route === "setup") {
+    const h = await headers();
+    const baseUrl = `${h.get("x-forwarded-proto") || "http"}://${h.get("host") || "localhost:3000"}`;
+    try {
+      const script = await getSetupScript(baseUrl);
+      return new NextResponse(script, { headers: { "Content-Type": "text/plain" } });
+    } catch { return json({ error: "Failed to generate setup script" }, { status: 500 }); }
   }
 
   if (route.startsWith("static/")) {
