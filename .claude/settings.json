@@ -48,7 +48,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo '=== RESTORED FROM strategy.md ===' && cat \"$CLAUDE_PROJECT_DIR/strategy.md\""
+            "command": "echo '=== RESTORED FROM memory.md ===' && cat \"$CLAUDE_PROJECT_DIR/memory.md\""
           }
         ]
       }

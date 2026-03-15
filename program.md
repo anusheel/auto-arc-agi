@@ -8,16 +8,17 @@ Play by calling play.py functions from the shell. Think between each invocation.
 
 ```
 LOOP:
-  1. Read strategy.md. Paste key facts into your thinking.
+  1. Read memory.md. Paste key facts into your thinking.
   2. On a new level/game: check obs `available_actions`, `grid_summary`, and `render` before moving.
   3. State hypothesis OUT LOUD.
   4. Take 1-3 actions to test it. Read output. Think.
-  5. Update strategy.md sections: Current Model, Falsified, Next Test, Game State, Last Reflection.
+  5. Update memory.md sections: Current Model, Falsified, Next Test, Game State, Last Reflection.
   6. Reflect IMMEDIATELY on: surprises, level transitions, repeated failures.
 
 RULES:
   - Max 3 act()/seq() per shell command. NEVER chain moves.
   - Same experiment 2 times with same result? Hypothesis is WRONG. Do NOT reset. Change hypothesis.
+  - seq() with unverified paths wastes actions on blocked moves. Validate with act() first or use grid-analyzer BFS.
   - Max 2 resets per hypothesis. If it didn't work twice, the problem is your understanding.
   - start() burns a new scorecard every call. Never open one without recording learnings first.
   - Levels auto-advance on completion. Use reset() only to retry.
@@ -25,23 +26,38 @@ RULES:
   - After editing program.md, re-read it before your next action.
 
 STUCK PROTOCOL:
+  - Check scorecard baseline EARLY (at 1.5x baseline actions). Don't wait for 2x.
   - List your 3 core assumptions about the win condition.
   - Test the assumption you're MOST confident about — that's usually the wrong one.
-  - After 2x baseline actions without completing, STOP. Check baseline via scorecard API.
+  - Same approach failing with different inputs? The CORE ASSUMPTION is wrong — stop testing variations.
 ```
 
 ## Enforcement
 
-Hooks block game actions (act/seq/start/reset/navigate) at 10+ state-mutating actions since last strategy.md update. Read-only calls are never blocked. Editing strategy.md resets the counter (only if under 200 lines — curate if over). After compaction, strategy.md is re-injected into context.
+Two independent counters, both increment on every game action:
 
-## Self-Reflection
+- **Tactical (10 actions)**: Blocked until memory.md is updated. Resets on memory.md edit (only if under 200 lines).
+- **Strategic (25 actions)**: Blocked until program.md or play.py is updated. Resets on program.md or play.py edit.
 
-Hooks block you at 10 actions until strategy.md is updated. Fill in ALL sections:
-- **Current Model** → what changed in your understanding
-- **Falsified** → what was disproven (append; curate old entries when nearing 200-line limit)
+Read-only calls are never blocked. After compaction, memory.md is re-injected into context.
+
+## Tactical Reflection (memory.md, every ~10 actions)
+
+Game-specific. Fill in ALL sections:
+- **Current Model** → what changed in your understanding of this game
+- **Falsified** → what was disproven (append; curate when nearing 200-line limit)
 - **Next Test** → next hypothesis + expected outcome
 - **Game State** → current card_id, guid, level, resources
-- **Last Reflection** → surprises + scores on Process/Understanding/Assumptions/Exploration/Stuck-detection/Tools (overwrite each cycle)
+- **Last Reflection** → surprises + scores on Process/Understanding/Assumptions/Exploration/Stuck-detection/Tools
+
+## Strategic Reflection (program.md + play.py, every ~25 actions)
+
+Generic, not game-specific. Ask yourself:
+- Is my methodology working? What process change would help most?
+- Am I repeating a pattern that should be a play.py helper?
+- Is there a rule I keep breaking that should be in program.md?
+
+Changes should be minimal and broadly applicable. Don't add game-specific knowledge to program.md or play.py.
 
 ## Sub-Agents
 
@@ -67,7 +83,7 @@ The main agent owns all decisions. Sub-agents enumerate and report, never select
 
 ## play.py
 
-`source .env && uv run python -c "from play import *; ..."`
+`source .env && python -c "from play import *; ..."`
 
 State resets between invocations. Capture `card_id`, `guid`, `game_id` from `start()` and pass as literals.
 
@@ -83,6 +99,5 @@ State resets between invocations. Capture `card_id`, `guid`, `game_id` from `sta
 | `grid_summary(grid)` | Value counts |
 | `render(frame_data)` | Text render of frame |
 | `find_blob(grid, val, min_size=3)` | Bounding box of largest region of val |
-| `result(msg)` | Set final learning message for dashboard |
 
 Add game-specific helpers to play.py as you discover mechanics. Keep them below the `Game-specific helpers` comment.
