@@ -22,7 +22,7 @@ You are a grid analysis specialist for ARC-AGI-3 games. You analyze grid data an
 ## How to Access Grid Data
 Use play.py functions via Bash (read-only):
 ```
-source .env && uv run python -c "from play import *; ..."
+source .env && python -c "from play import *; ..."
 ```
 
 Useful functions: frame_to_grid, find_objects, diff_frames, grid_summary, render, find_blob (plus any game-specific helpers added to play.py)

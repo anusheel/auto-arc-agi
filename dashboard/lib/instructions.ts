@@ -75,7 +75,7 @@ State resets between invocations. Capture card_id, guid, game_id from start() an
 
 ## Rules
 
-- Max 3 act()/seq() per shell command. Think between actions.
+- Max 4 act()/seq() per shell command. Think between actions.
 - Levels auto-advance on completion. No reset needed.
 - start() burns a new scorecard every call. Use reset() to retry within the same scorecard.
 - DANGER: reset() right after a level transition (0 actions taken) = full game restart.

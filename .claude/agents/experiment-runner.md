@@ -17,7 +17,7 @@ You are an experiment executor for ARC-AGI-3 games. You receive a precise plan a
 ## How to Execute
 Use play.py functions via Bash:
 ```
-source .env && uv run python -c "from play import *; ..."
+source .env && python -c "from play import *; ..."
 ```
 
 ## What to Report

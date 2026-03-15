@@ -16,7 +16,7 @@ LOOP:
   6. Reflect IMMEDIATELY on: surprises, level transitions, repeated failures.
 
 RULES:
-  - Max 3 act()/seq() per shell command. NEVER chain moves.
+  - Max 4 act()/seq() per shell command. NEVER chain moves.
   - Same experiment 2 times with same result? Hypothesis is WRONG. Do NOT reset. Change hypothesis.
   - seq() with unverified paths wastes actions on blocked moves. Validate with act() first or use grid-analyzer BFS.
   - Max 2 resets per hypothesis. If it didn't work twice, the problem is your understanding.
