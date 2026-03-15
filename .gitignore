@@ -5,7 +5,6 @@ __pycache__/
 uv.lock
 .arc_session.json
 status/
-memory.md
+memory/
 dashboard/data/
-.claude/arc_strategic_count
-.claude/arc_action_count
+.action_count

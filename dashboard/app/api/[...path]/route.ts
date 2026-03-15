@@ -19,7 +19,9 @@ export async function GET(req: Request, ctx: Ctx) {
   if (route === "active") {
     try {
       const db = await readDB();
-      const active = Object.values(db.games);
+      const active = Object.values(db.games)
+        .sort((a, b) => b.updated_at - a.updated_at)
+        .slice(0, 5);
       const results = await Promise.all(
         active.map(async (g) => ({ ...g, frames: await readFrames(g.guid) }))
       );
