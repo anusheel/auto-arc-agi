@@ -1,6 +1,6 @@
 ---
 name: experiment-runner
-description: Execute a defined action sequence in an ARC-AGI game and report results. Use when you have a specific plan to test (e.g., navigate to position X, take action Y) and need the result without cluttering main context with grid data.
+description: Execute a defined action sequence in an ARC-AGI game and report results. Use when you have a specific plan to test (e.g., take actions UULLDR, then report grid diff) and need the result without cluttering main context with grid data.
 tools: Bash, Read, Grep, Glob
 model: sonnet
 maxTurns: 20
@@ -21,10 +21,10 @@ source .env && uv run python -c "from play import *; ..."
 ```
 
 ## What to Report
-1. Starting state (block position, answer pattern, resources)
+1. Starting state (grid summary, key object positions)
 2. Each action taken and its immediate result
-3. Final state (block position, answer pattern, resources, level status)
-4. Any grid diffs between start and end states
+3. Final state (grid summary, key object positions, levels_completed)
+4. Any grid diffs between start and end states (use diff_frames)
 5. Whether the state changed to WIN, GAME_OVER, or level completed
 
 Keep reports concise and factual. No speculation.

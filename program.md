@@ -9,10 +9,10 @@ Play by calling play.py functions from the shell. Think between each invocation.
 ```
 LOOP:
   1. Read strategy.md. Paste key facts into your thinking.
-  2. On a new level/game: check obs `available_actions` and run `level_status` before moving.
+  2. On a new level/game: check obs `available_actions`, `grid_summary`, and `render` before moving.
   3. State hypothesis OUT LOUD.
   4. Take 1-3 actions to test it. Read output. Think.
-  5. Update strategy.md sections: Current Model, Falsified, Next Test, Game State.
+  5. Update strategy.md sections: Current Model, Falsified, Next Test, Game State, Last Reflection.
   6. Reflect IMMEDIATELY on: surprises, level transitions, repeated failures.
 
 RULES:
@@ -32,16 +32,16 @@ STUCK PROTOCOL:
 
 ## Enforcement
 
-Hooks block game actions (act/seq/start/reset/navigate) at 10+ state-mutating actions since last strategy.md update. Read-only calls are never blocked. Editing strategy.md resets the counter. After compaction, strategy.md is re-injected into context.
+Hooks block game actions (act/seq/start/reset/navigate) at 10+ state-mutating actions since last strategy.md update. Read-only calls are never blocked. Editing strategy.md resets the counter (only if under 200 lines — curate if over). After compaction, strategy.md is re-injected into context.
 
 ## Self-Reflection
 
-Before editing strategy.md, answer:
-1. What changed in my model?
-2. What was falsified?
-3. What is my next hypothesis and how will I test it?
-
-Score yourself on: Process, Understanding, Assumptions, Exploration, Stuck detection, Tools. One concrete change per dimension.
+Hooks block you at 10 actions until strategy.md is updated. Fill in ALL sections:
+- **Current Model** → what changed in your understanding
+- **Falsified** → what was disproven (append; curate old entries when nearing 200-line limit)
+- **Next Test** → next hypothesis + expected outcome
+- **Game State** → current card_id, guid, level, resources
+- **Last Reflection** → surprises + scores on Process/Understanding/Assumptions/Exploration/Stuck-detection/Tools (overwrite each cycle)
 
 ## Sub-Agents
 
@@ -82,12 +82,7 @@ State resets between invocations. Capture `card_id`, `guid`, `game_id` from `sta
 | `diff_frames(grid_a, grid_b)` | Dict of changed cells |
 | `grid_summary(grid)` | Value counts |
 | `render(frame_data)` | Text render of frame |
-| `level_status(obs)` | Print block pos, markers, resources |
-| `maze_map(grid)` | Coarse 5x5 grid view of corridors, walls, block, markers |
-| `find_path(grid, sr, sc, tr, tc)` | BFS shortest path (UDLR string) between two positions |
-| `reachable(grid, sr, sc)` | All positions reachable from start on 5-cell grid |
-| `navigate(game_id, guid, tr, tc)` | Auto-navigate block to target using BFS |
-| `block_pos(obs)` / `block_pos_from_grid(grid)` | Get block top-left (r, c) |
 | `find_blob(grid, val, min_size=3)` | Bounding box of largest region of val |
-| `can_place(grid, r, c, w=5, h=5)` | Check if 5x5 unit fits at position |
 | `result(msg)` | Set final learning message for dashboard |
+
+Add game-specific helpers to play.py as you discover mechanics. Keep them below the `Game-specific helpers` comment.

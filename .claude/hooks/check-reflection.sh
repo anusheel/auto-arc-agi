@@ -12,11 +12,9 @@ COUNTER_FILE="$(dirname "$0")/../arc_action_count"
 COUNT=$(cat "$COUNTER_FILE" 2>/dev/null || echo 0)
 
 if [ "$COUNT" -ge 10 ]; then
-  echo "MANDATORY REFLECTION ($COUNT actions since last update). You MUST:" >&2
-  echo "1. Score yourself on Process/Understanding/Assumptions/Exploration/Stuck-detection/Tools" >&2
-  echo "2. Update strategy.md with new learnings" >&2
-  echo "3. State your next hypothesis OUT LOUD" >&2
-  echo "Do NOT take another game action until strategy.md is updated." >&2
+  echo "MANDATORY REFLECTION ($COUNT actions since last update)." >&2
+  echo "Update strategy.md sections: Current Model, Falsified, Next Test, Game State, Last Reflection." >&2
+  echo "Note any surprises. Score: Process/Understanding/Assumptions/Exploration/Stuck-detection/Tools." >&2
   exit 2
 fi
 

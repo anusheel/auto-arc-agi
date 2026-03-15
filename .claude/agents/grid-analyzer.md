@@ -1,6 +1,6 @@
 ---
 name: grid-analyzer
-description: Analyze ARC-AGI grid data for patterns, comparisons, and spatial reasoning. Use when you need to compare answer vs reference boxes, find patterns, or analyze grid structure without polluting main context with verbose grid output.
+description: Analyze ARC-AGI grid data for patterns, comparisons, and spatial reasoning. Use when you need to compare grid regions, find patterns, or analyze grid structure without polluting main context with verbose grid output.
 tools: Bash, Read, Grep, Glob
 model: sonnet
 hooks:
@@ -25,7 +25,7 @@ Use play.py functions via Bash (read-only):
 source .env && uv run python -c "from play import *; ..."
 ```
 
-Useful functions: frame_to_grid, find_objects, diff_frames, grid_summary, render, maze_map, find_path, reachable
+Useful functions: frame_to_grid, find_objects, diff_frames, grid_summary, render, find_blob (plus any game-specific helpers added to play.py)
 
 ## What to Report
 - Cell values at specific positions

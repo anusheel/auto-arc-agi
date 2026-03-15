@@ -25,3 +25,9 @@ _What specific experiment will you run next, and what outcome would confirm/deny
 _Active card_id, guid, game_id. Level progress. Resources remaining._
 
 (none yet)
+
+## Last Reflection
+
+_Surprises, process scores, concrete changes. Overwrite each reflection cycle._
+
+(none yet)
