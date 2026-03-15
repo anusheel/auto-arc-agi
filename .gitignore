@@ -5,3 +5,4 @@ __pycache__/
 uv.lock
 .arc_session.json
 status/
+strategy.md

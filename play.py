@@ -17,22 +17,31 @@ SESSION = httpx.Client(timeout=60)
 ACTION_MAP = {"U": "ACTION1", "D": "ACTION2", "L": "ACTION3", "R": "ACTION4",
               "S": "ACTION5", "X": "ACTION6"}
 
-# Restore cookies from previous invocations
+# Restore cookies from previous invocations (with domain metadata)
 if COOKIE_FILE.exists():
     try:
-        for name, value in json.loads(COOKIE_FILE.read_text()).items():
-            if value and value != "_remove_":
-                SESSION.cookies.set(name, value)
+        for c in json.loads(COOKIE_FILE.read_text()):
+            SESSION.cookies.set(c["name"], c["value"],
+                                domain=c.get("domain", ""), path=c.get("path", "/"))
     except Exception:
         pass
 
 
 # ── Core API ─────────────────────────────────────────────────────────
 
+COUNTER_FILE = Path(__file__).parent / ".claude" / "arc_action_count"
+
+
 def api(method, path, body=None):
     """Call ARC API with retry on rate limit."""
     if "/cmd/" in path:
         time.sleep(0.1)
+        # Increment action counter per actual game command (not per bash invocation)
+        try:
+            count = int(COUNTER_FILE.read_text().strip()) if COUNTER_FILE.exists() else 0
+            COUNTER_FILE.write_text(str(count + 1))
+        except Exception:
+            pass
     headers = {"X-API-Key": KEY, "Content-Type": "application/json"}
     for attempt in range(3):
         r = (SESSION.get if method == "GET" else SESSION.post)(
@@ -42,11 +51,20 @@ def api(method, path, body=None):
             continue
         r.raise_for_status()
         data = r.json()
-        # Persist cookies for cross-invocation state
+        # Persist cookies with domain metadata for cross-invocation state
         try:
-            COOKIE_FILE.write_text(json.dumps({n: v for n, v in SESSION.cookies.items()}))
+            cookie_list = [{"name": c.name, "value": c.value,
+                            "domain": c.domain, "path": c.path}
+                           for c in SESSION.cookies.jar]
+            COOKIE_FILE.write_text(json.dumps(cookie_list))
         except Exception:
             pass
+        # Warn on guid mismatch (stale session routing to wrong game)
+        if "/cmd/" in path and body and "guid" in body:
+            resp_guid = data.get("guid")
+            if resp_guid and resp_guid != body.get("guid"):
+                print(f"WARNING: guid mismatch! sent={body['guid'][:8]}… got={resp_guid[:8]}…",
+                      file=sys.stderr)
         _status.update(body, data)
         return data
     r.raise_for_status()

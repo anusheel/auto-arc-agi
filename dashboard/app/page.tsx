@@ -108,10 +108,17 @@ function FramePlayer({ frames }: { frames: number[][][] }) {
     setIndex((current) => Math.min(latestIndex, (current ?? latestIndex) + 1));
   }, [latestIndex]);
 
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const handleKey = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === "ArrowLeft") { e.preventDefault(); stepBack(); }
+    else if (e.key === "ArrowRight") { e.preventDefault(); stepForward(); }
+  }, [stepBack, stepForward]);
+
   if (!frames.length) return null;
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 outline-none" ref={containerRef} tabIndex={0} onKeyDown={handleKey}>
       <GameCanvas grid={grid} />
       {frames.length > 1 && (
         <div className="space-y-2 px-1">
