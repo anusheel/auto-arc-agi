@@ -25,18 +25,27 @@ Play by calling play.py functions from the shell. Think between each invocation.
 LOOP:
   1. Re-read your memory files as needed. Paste key facts into your thinking.
   2. On a new level/game: catalog all structures BEFORE any movement (render, grid_summary, find_objects).
-  3. State hypothesis OUT LOUD.
-  4. Take 1 action. Diff the grid before/after. Read output. Think.
-  5. Write what you learned to the appropriate memory file.
-  6. Reflect: What changed that I didn't expect? What's my hypothesis and what single action tests it? Am I repeating a failed approach?
+  3. State hypothesis OUT LOUD. Say what you expect the next action to change.
+  4. Take EXACTLY 1 action using the observe() helper. It calls act(), diffs
+     against the saved pre-grid, prints all changes, then saves the post-grid
+     for the next diff. NEVER call act() raw during exploration — always go
+     through observe().
+  5. Read the observe() output. State OUT LOUD: what changed, what surprised you,
+     what confirmed/refuted your hypothesis.
+  6. Write what you learned to the appropriate memory file.
+  7. Reflect: What's my updated hypothesis and what single action tests it next?
+     Am I repeating a failed approach?
 
 RULES:
-  - On new levels: use act() one at a time. NEVER use seq() for exploration.
+  - NEVER batch multiple actions in one Python invocation during exploration.
+    One shell command → one observe() call → read output → think → next command.
   - seq() is only for proven paths on solved levels.
   - Same experiment 2 times with same result? Hypothesis is WRONG. Change it.
   - Max 2 resets per hypothesis. If it didn't work twice, the problem is your understanding.
   - start() burns a new scorecard every call. Never open one without recording learnings first.
   - Levels auto-advance on completion. Use reset() only to retry.
+  - After reset() or start(), call save_grid(obs) before the first observe().
+    Local Python state resets between invocations; save_grid() sets the baseline.
   - DANGER: reset() right after a level transition (0 actions taken) = full game restart.
   - After editing program.md, re-read it before your next action.
 
@@ -46,10 +55,6 @@ STUCK PROTOCOL:
   - Test the assumption you're MOST confident about — that's usually the wrong one.
   - Same approach failing with different inputs? The CORE ASSUMPTION is wrong — stop testing variations.
 ```
-
-## Observation Protocol
-
-After EVERY interaction with a game object, diff the grid before/after. Notice what changed. Do NOT proceed until you've stated what was surprising or confirmed expectations.
 
 ## Principles
 
@@ -67,7 +72,7 @@ After EVERY interaction with a game object, diff the grid before/after. Notice w
 
 `source .env && python -c "from play import *; ..."`
 
-State resets between invocations. Capture `card_id`, `guid`, `game_id` from `start()` and pass as literals.
+Local Python state resets between invocations. Capture `card_id`, `guid`, `game_id` from `start()` and pass as literals.
 
 | Function | Purpose |
 |---|---|
@@ -77,14 +82,14 @@ State resets between invocations. Capture `card_id`, `guid`, `game_id` from `sta
 | `seq(game_id, guid, moves, card_id=None)` | Run move string, get final obs. **Only for proven paths.** |
 | `frame_to_grid(obs)` | Extract 2D grid from obs |
 | `find_objects(grid, val)` | Find all (row, col) with value |
+| `find_blob(grid, val, min_size=3)` | Bounding box of largest region of val |
 | `diff_frames(grid_a, grid_b)` | Dict of changed cells |
 | `grid_summary(grid)` | Value counts |
 | `render(frame_data)` | Text render of frame |
+| `observe(action_cmd, game_id, guid, card_id=None, x=None, y=None)` | Wraps act() with auto-diff. Prints all changes and grid_summary. Returns (obs, new_guid). **Use this for exploration.** |
+| `save_grid(obs)` | Set the pre-action baseline for observe(). Call after reset()/start(). |
 
-Add game-specific helpers to play.py as you discover mechanics. Keep them below the `Game-specific helpers` comment.
-
-Build game-specific helpers as you discover mechanics. Examples of useful patterns:
-- **observe/diff** — compare grids before/after an action, report all changes
+Add game-specific helpers to play.py as you discover mechanics. Keep them below the `Game-specific helpers` comment. Examples of useful patterns:
 - **level catalog** — enumerate structures, special values, reachable positions on a new level
 - **pathfinder** — BFS or similar for navigating through corridors
 - **speedrun** — replay solved levels efficiently once solutions are proven

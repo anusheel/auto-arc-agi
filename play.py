@@ -230,6 +230,39 @@ def render(frame_data):
     return "\n".join(lines) or "(empty)"
 
 
+# ── Observe/diff workflow ────────────────────────────────────────────
+
+_prev_grid = None
+
+
+def observe(action_cmd, game_id, guid, card_id=None, x=None, y=None):
+    """Take one action, diff before/after, print all changes.
+    Always use this instead of raw act() during exploration."""
+    global _prev_grid
+    if _prev_grid is None:
+        print("WARNING: No pre-grid saved. Call save_grid() after reset/start first.")
+    obs = act(action_cmd, game_id, guid, card_id=card_id, x=x, y=y)
+    new_guid = obs.get("guid") or guid
+    grid = frame_to_grid(obs)
+    if _prev_grid is not None:
+        changes = diff_frames(_prev_grid, grid)
+        print(f"Action: {action_cmd} | State: {obs.get('state')} | Levels: {obs.get('levels_completed')} | Changes: {len(changes)}")
+        for (r, c), (old, new) in sorted(changes.items()):
+            print(f"  ({r},{c}): {old} -> {new}")
+    else:
+        print(f"Action: {action_cmd} | State: {obs.get('state')} | Levels: {obs.get('levels_completed')}")
+    print(f"  guid: {new_guid[:12]}...")
+    print(f"  grid_summary: {grid_summary(grid)}")
+    _prev_grid = grid
+    return obs, new_guid
+
+
+def save_grid(obs):
+    """Save current grid as the pre-action baseline for observe()."""
+    global _prev_grid
+    _prev_grid = frame_to_grid(obs)
+    return _prev_grid
+
 
 # ── Game-specific helpers (add per-game helpers below) ─────────────────
 
