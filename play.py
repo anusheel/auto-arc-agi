@@ -36,12 +36,6 @@ def api(method, path, body=None):
     """Call ARC API with retry on rate limit."""
     if "/cmd/" in path:
         time.sleep(0.1)
-        # Increment action counter per actual game command (not per bash invocation)
-        try:
-            count = int(COUNTER_FILE.read_text().strip()) if COUNTER_FILE.exists() else 0
-            COUNTER_FILE.write_text(str(count + 1))
-        except Exception:
-            pass
     headers = {"X-API-Key": KEY, "Content-Type": "application/json"}
     for attempt in range(3):
         r = (SESSION.get if method == "GET" else SESSION.post)(
@@ -59,6 +53,13 @@ def api(method, path, body=None):
             COOKIE_FILE.write_text(json.dumps(cookie_list))
         except Exception:
             pass
+        # Increment action counter only after successful game command
+        if "/cmd/" in path:
+            try:
+                count = int(COUNTER_FILE.read_text().strip()) if COUNTER_FILE.exists() else 0
+                COUNTER_FILE.write_text(str(count + 1))
+            except Exception:
+                pass
         # Warn on guid mismatch (stale session routing to wrong game)
         if "/cmd/" in path and body and "guid" in body:
             resp_guid = data.get("guid")
