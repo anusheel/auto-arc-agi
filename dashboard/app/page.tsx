@@ -129,7 +129,7 @@ function FramePlayer({ frames }: { frames: number[][][] }) {
   if (!frames.length) return null;
 
   return (
-    <div className="space-y-3 outline-none" ref={containerRef} tabIndex={0} onKeyDown={handleKey}>
+    <div className="space-y-3 outline-none" ref={containerRef} tabIndex={0} onKeyDown={handleKey} onMouseEnter={() => containerRef.current?.focus()}>
       <GameCanvas grid={grid} />
       {frames.length > 1 && (
         <div className="space-y-2 px-1">
