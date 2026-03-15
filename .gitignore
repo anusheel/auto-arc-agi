@@ -7,3 +7,5 @@ uv.lock
 status/
 memory.md
 dashboard/data/
+.claude/arc_strategic_count
+.claude/arc_action_count
