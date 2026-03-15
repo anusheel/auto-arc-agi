@@ -71,45 +71,42 @@ function GameCanvas({ grid }: { grid: number[][] }) {
 }
 
 function FramePlayer({ frames }: { frames: number[][][] }) {
-  const [index, setIndex] = useState(frames.length - 1);
+  const [index, setIndex] = useState<number | null>(null);
   const [playing, setPlaying] = useState(false);
-  const playRef = useRef(false);
-
-  const prevLen = useRef(frames.length);
-  useEffect(() => {
-    if (frames.length !== prevLen.current && !playRef.current) {
-      setIndex(frames.length - 1);
-    }
-    prevLen.current = frames.length;
-  }, [frames.length]);
+  const latestIndex = Math.max(0, frames.length - 1);
 
   useEffect(() => {
-    playRef.current = playing;
     if (!playing) return;
     const interval = setInterval(() => {
-      setIndex((i) => {
-        if (i >= frames.length - 1) {
+      setIndex((current) => {
+        const nextIndex = current ?? latestIndex;
+        if (nextIndex >= latestIndex) {
           setPlaying(false);
-          return frames.length - 1;
+          return latestIndex;
         }
-        return i + 1;
+        return nextIndex + 1;
       });
     }, 150);
     return () => clearInterval(interval);
-  }, [playing, frames.length]);
+  }, [latestIndex, playing]);
 
-  const safeIndex = Math.min(index, frames.length - 1);
+  const safeIndex = Math.min(index ?? latestIndex, latestIndex);
   const grid = frames[safeIndex] || [];
 
   const stepBack = useCallback(() => {
     setPlaying(false);
-    setIndex((i) => Math.max(0, i - 1));
+    setIndex((current) => Math.max(0, (current ?? latestIndex) - 1));
+  }, [latestIndex]);
+
+  const setManualIndex = useCallback((nextIndex: number | null) => {
+    setPlaying(false);
+    setIndex(nextIndex);
   }, []);
 
   const stepForward = useCallback(() => {
     setPlaying(false);
-    setIndex((i) => Math.min(frames.length - 1, i + 1));
-  }, [frames.length]);
+    setIndex((current) => Math.min(latestIndex, (current ?? latestIndex) + 1));
+  }, [latestIndex]);
 
   if (!frames.length) return null;
 
@@ -121,11 +118,10 @@ function FramePlayer({ frames }: { frames: number[][][] }) {
           <Slider
             value={[safeIndex]}
             min={0}
-            max={frames.length - 1}
+            max={latestIndex}
             step={1}
             onValueChange={(val) => {
-              setPlaying(false);
-              setIndex(Array.isArray(val) ? val[0] : val);
+              setManualIndex(Array.isArray(val) ? val[0] : val);
             }}
             className="w-full"
           />
@@ -133,7 +129,7 @@ function FramePlayer({ frames }: { frames: number[][][] }) {
             <div className="flex items-center gap-2">
               <button
                 className="text-[11px] text-[#86868b] hover:text-[#1d1d1f] transition-colors"
-                onClick={() => { setPlaying(false); setIndex(0); }}
+                onClick={() => setManualIndex(0)}
               >
                 &#x23EE;
               </button>
@@ -157,7 +153,7 @@ function FramePlayer({ frames }: { frames: number[][][] }) {
               </button>
               <button
                 className="text-[11px] text-[#86868b] hover:text-[#1d1d1f] transition-colors"
-                onClick={() => { setPlaying(false); setIndex(frames.length - 1); }}
+                onClick={() => setManualIndex(null)}
               >
                 &#x23ED;
               </button>
@@ -209,6 +205,7 @@ function timeSince(ts: number) {
 
 export default function Dashboard() {
   const [statuses, setStatuses] = useState<Status[]>([]);
+  const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
     const poll = async () => {
@@ -225,9 +222,8 @@ export default function Dashboard() {
     return () => clearInterval(interval);
   }, []);
 
-  const [, setTick] = useState(0);
   useEffect(() => {
-    const interval = setInterval(() => setTick((t) => t + 1), 1000);
+    const interval = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(interval);
   }, []);
 
@@ -276,12 +272,16 @@ export default function Dashboard() {
                         {s.game_id}
                         <span className="text-[11px] text-[#86868b] ml-1.5">{s.guid.slice(0, 8)}</span>
                       </span>
-                      <span className={`text-[11px] font-mono ${Date.now() / 1000 - s.updated_at < 60 ? "text-green-500" : "text-[#86868b]"}`}>{timeSince(s.updated_at)}</span>
+                      <span className={`text-[11px] font-mono ${now / 1000 - s.updated_at < 60 ? "text-green-500" : "text-[#86868b]"}`}>{timeSince(s.updated_at)}</span>
                     </div>
 
                     <p className="text-[13px] text-[#6e6e73] leading-relaxed line-clamp-2 mt-2">
                       {s.title || s.experiment}
                     </p>
+
+                    <div className="mt-3">
+                      <StatePill state={s.state} />
+                    </div>
 
                     {s.result && (
                       <p className="text-[12px] text-[#1d1d1f] bg-[#f5f5f7] rounded-lg p-3 mt-3 leading-relaxed">

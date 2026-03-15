@@ -12,44 +12,58 @@ LOOP:
   2. On a new level/game: check obs `available_actions` and run `level_status` before moving.
   3. State hypothesis OUT LOUD.
   4. Take 1-3 actions to test it. Read output. Think.
-  5. Update strategy.md with what you learned.
-  6. Every ~10 actions or after completing/failing: REFLECT (see below),
-     update play.py and program.md (generic only), commit and push.
+  5. Update strategy.md sections: Current Model, Falsified, Next Test, Game State.
+  6. Reflect IMMEDIATELY on: surprises, level transitions, repeated failures.
 
 RULES:
   - Max 3 act()/seq() per shell command. NEVER chain moves.
-  - No strategy.md update in last 3 messages? STOP and update now.
-  - Never open a new scorecard without recording learnings first.
-  - Same experiment 3 times? STOP — you're stuck (see Principles).
-  - After editing program.md, re-read it before your next action.
-  - Levels auto-advance on completion — no reset needed. Use reset(game_id, card_id, guid) only to retry.
-  - start() burns a new scorecard every call. Use reset() to retry within the same scorecard.
+  - Same experiment 2 times with same result? Hypothesis is WRONG. Do NOT reset. Change hypothesis.
+  - Max 2 resets per hypothesis. If it didn't work twice, the problem is your understanding.
+  - start() burns a new scorecard every call. Never open one without recording learnings first.
+  - Levels auto-advance on completion. Use reset() only to retry.
   - DANGER: reset() right after a level transition (0 actions taken) = full game restart.
+  - After editing program.md, re-read it before your next action.
+
+STUCK PROTOCOL:
+  - List your 3 core assumptions about the win condition.
+  - Test the assumption you're MOST confident about — that's usually the wrong one.
+  - After 2x baseline actions without completing, STOP. Check baseline via scorecard API.
 ```
+
+## Enforcement
+
+Hooks block game actions (act/seq/start/reset/navigate) at 10+ state-mutating actions since last strategy.md update. Read-only calls are never blocked. Editing strategy.md resets the counter. After compaction, strategy.md is re-injected into context.
+
+## Self-Reflection
+
+Before editing strategy.md, answer:
+1. What changed in my model?
+2. What was falsified?
+3. What is my next hypothesis and how will I test it?
+
+Score yourself on: Process, Understanding, Assumptions, Exploration, Stuck detection, Tools. One concrete change per dimension.
+
+## Sub-Agents
+
+Two utility sub-agents in `.claude/agents/`. Optional — prefer play.py helpers when possible.
+
+| Agent | When to Use | When NOT to Use |
+|---|---|---|
+| `experiment-runner` | Execute a known multi-step plan when output would be verbose | Simple 1-3 action tests (just do them directly) |
+| `grid-analyzer` | Enumerate candidates: symmetries, patterns, untested features | Making strategic decisions or selecting hypotheses |
+
+The main agent owns all decisions. Sub-agents enumerate and report, never select what to try. Sub-agents inherit project hooks — reflect before dispatching to ensure a fresh counter.
 
 ## Principles
 
 - Think before acting, but never theorize when one action would answer it.
-- Every action tests a hypothesis. Curiosity counts — "what does this do?" is valid.
 - Something unexpected? Stop. That's the learning.
 - Learning IS the work. Don't cling to a run; cling to understanding.
-- Build a model of the rules, then try to break it. Seek edge cases that would disprove your understanding.
-- You know the rules when you can predict the outcome of any action. Until then, keep testing.
-- Think something is impossible? Spend 1 action to check. Untested constraints are the costliest assumptions.
-- Stuck 3+ times on the same idea? ESCALATE — try something qualitatively different.
+- Build a model of the rules, then try to break it.
+- You know the rules when you can predict the outcome of any action.
+- Think something is impossible? Spend 1 action to check.
 - Poke every interesting object. Nothing is decoration until proven otherwise.
 - Zoom out periodically. Better tools and methodology compound.
-
-## Self-Reflection
-
-Every ~10 actions, score yourself on each dimension. Note one concrete change per dimension.
-
-- **Process** — Did you follow the loop? Skipping steps means repeating mistakes.
-- **Understanding** — Did each action advance your model of the rules? If not, choose better experiments.
-- **Assumptions** — What did you "know" without testing? Name them to catch them.
-- **Exploration** — What haven't you tried? Avoidance is usually a hidden assumption.
-- **Stuck detection** — How many actions before you changed approach? What signal did you miss?
-- **Tools** — Done the same thing 3 times by hand? Write a helper.
 
 ## play.py
 
