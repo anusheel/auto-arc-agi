@@ -4,7 +4,8 @@ __pycache__/
 .next/
 uv.lock
 .arc_session.json
-status/
 memory/
 dashboard/data/
-.action_count
+.reflect_count
+.rethink_count
+.prev_grid.json

@@ -73,17 +73,26 @@ def _http(method, url, body=None, headers=None, timeout=60):
 
 # ── Reflection enforcement ────────────────────────────────────────────
 
-REFLECT_EVERY = 10  # game actions between mandatory reflections (adjustable)
-_ACTION_LOG = Path(__file__).parent / ".action_count"
+REFLECT_EVERY = 10  # game actions between mandatory reflections
+RETHINK_EVERY = 50  # game actions between full approach review
+_REFLECT_LOG = Path(__file__).parent / ".reflect_count"
+_RETHINK_LOG = Path(__file__).parent / ".rethink_count"
+
+
+def _read_counter(path):
+    try:
+        return int(path.read_text().strip()) if path.exists() else 0
+    except Exception:
+        return 0
 
 
 def _should_reflect():
-    """True if enough actions have passed since the last reflection."""
-    try:
-        count = int(_ACTION_LOG.read_text().strip()) if _ACTION_LOG.exists() else 0
-    except Exception:
-        return False
-    return count >= REFLECT_EVERY
+    """Check if rethink or reflect is due. Returns 'rethink', 'reflect', or False."""
+    if _read_counter(_RETHINK_LOG) >= RETHINK_EVERY:
+        return "rethink"
+    if _read_counter(_REFLECT_LOG) >= REFLECT_EVERY:
+        return "reflect"
+    return False
 
 
 # ── Core API ─────────────────────────────────────────────────────────
@@ -92,8 +101,12 @@ def _should_reflect():
 def api(method, path, body=None):
     """Call ARC API with retry on rate limit."""
     # Enforce reflection before game commands
-    if "/cmd/" in path and _should_reflect():
-        _ACTION_LOG.write_text("0")
+    signal = _should_reflect() if "/cmd/" in path else False
+    if signal:
+        if signal == "rethink":
+            _RETHINK_LOG.write_text("0")
+            raise Exception("RETHINK: Write to memory/, then re-read program.md and edit if your workflow has improved. See program.md.")
+        _REFLECT_LOG.write_text("0")
         raise Exception("REFLECT: Write to memory/ before continuing. See program.md.")
     if "/cmd/" in path:
         time.sleep(0.1)
@@ -106,11 +119,11 @@ def api(method, path, body=None):
         if status >= 400:
             raise Exception(f"HTTP {status}: {data}")
         _save_cookies()
-        # Increment action counter after successful game command
+        # Increment action counters after successful game command
         if "/cmd/" in path:
             try:
-                count = int(_ACTION_LOG.read_text().strip()) if _ACTION_LOG.exists() else 0
-                _ACTION_LOG.write_text(str(count + 1))
+                _REFLECT_LOG.write_text(str(_read_counter(_REFLECT_LOG) + 1))
+                _RETHINK_LOG.write_text(str(_read_counter(_RETHINK_LOG) + 1))
             except Exception:
                 pass
         # Warn on guid mismatch (stale session routing to wrong game)
@@ -170,6 +183,8 @@ def seq(game_id, guid, moves, card_id=None):
             guid = obs["guid"]
         if obs.get("state") in ("WIN", "GAME_OVER"):
             break
+    if obs:
+        save_grid(obs)
     return obs
 
 
@@ -224,20 +239,21 @@ def render(frame_data):
 
 # ── Observe/diff workflow ────────────────────────────────────────────
 
-_prev_grid = None
+_GRID_FILE = Path(__file__).parent / ".prev_grid.json"
 
 
 def observe(action_cmd, game_id, guid, card_id=None, x=None, y=None):
     """Take one action, diff before/after, print all changes.
     Always use this instead of raw act() during exploration."""
-    global _prev_grid
-    if _prev_grid is None:
-        print("WARNING: No pre-grid saved. Call save_grid() after reset/start first.")
+    try:
+        prev = json.loads(_GRID_FILE.read_text()) if _GRID_FILE.exists() else None
+    except Exception:
+        prev = None
     obs = act(action_cmd, game_id, guid, card_id=card_id, x=x, y=y)
     new_guid = obs.get("guid") or guid
     grid = frame_to_grid(obs)
-    if _prev_grid is not None:
-        changes = diff_frames(_prev_grid, grid)
+    if prev is not None:
+        changes = diff_frames(prev, grid)
         print(f"Action: {action_cmd} | State: {obs.get('state')} | Levels: {obs.get('levels_completed')} | Changes: {len(changes)}")
         for (r, c), (old, new) in sorted(changes.items()):
             print(f"  ({r},{c}): {old} -> {new}")
@@ -245,15 +261,58 @@ def observe(action_cmd, game_id, guid, card_id=None, x=None, y=None):
         print(f"Action: {action_cmd} | State: {obs.get('state')} | Levels: {obs.get('levels_completed')}")
     print(f"  guid: {new_guid[:12]}...")
     print(f"  grid_summary: {grid_summary(grid)}")
-    _prev_grid = grid
+    try:
+        _GRID_FILE.write_text(json.dumps(grid))
+    except Exception:
+        pass
     return obs, new_guid
 
 
 def save_grid(obs):
-    """Save current grid as the pre-action baseline for observe()."""
-    global _prev_grid
-    _prev_grid = frame_to_grid(obs)
-    return _prev_grid
+    """Save current grid as the diff baseline for observe(). Persists to disk.
+    Call after reset()/start()."""
+    grid = frame_to_grid(obs)
+    try:
+        _GRID_FILE.write_text(json.dumps(grid))
+    except Exception:
+        pass
+    return grid
+
+
+# ── Shape helpers ────────────────────────────────────────────────────
+
+def extract_pattern(grid, r0, c0, r1, c1, bg=None):
+    """Extract a sub-grid as a list of lists. bg replaces background values for clarity."""
+    return [[bg if bg is not None and grid[r][c] == bg else grid[r][c]
+             for c in range(c0, c1 + 1)]
+            for r in range(r0, r1 + 1)]
+
+
+def render_pattern(pattern, label=None):
+    """Render a small pattern to text. Uses . for 0/None, hex for others."""
+    lines = []
+    if label:
+        lines.append(label)
+    for row in pattern:
+        lines.append("".join("." if v in (0, None) else hex(v)[2:] for v in row))
+    return "\n".join(lines)
+
+
+def patterns_match(a, b):
+    """True if two patterns have identical non-background shapes.
+    Compares only non-zero cells; ignores size differences by aligning top-left."""
+    def normalize(p):
+        cells = set()
+        for r, row in enumerate(p):
+            for c, v in enumerate(row):
+                if v and v not in (0, None):
+                    cells.add((r, c, v))
+        if not cells:
+            return set()
+        min_r = min(r for r, c, v in cells)
+        min_c = min(c for r, c, v in cells)
+        return {(r - min_r, c - min_c, v) for r, c, v in cells}
+    return normalize(a) == normalize(b)
 
 
 # ── Game-specific helpers (add per-game helpers below) ─────────────────
